@@ -14,10 +14,21 @@ st.set_page_config = lambda *a, **k: None
 
 base = os.path.dirname(os.path.abspath(__file__))
 
+# Modules whose names collide between the two packages
+SHARED_NAMES = ("database", "utils", "optimizer")
+
 
 def load_module(name, path, extra_path):
-    if extra_path not in sys.path:
-        sys.path.insert(0, extra_path)
+    # Remove conflicting cached modules from the other package
+    for conflicting in SHARED_NAMES:
+        sys.modules.pop(conflicting, None)
+    # Remove any sibling package path so this package's modules win
+    sys.path[:] = [p for p in sys.path if p not in (
+        os.path.join(base, "consensus"),
+        os.path.join(base, "division"),
+    )]
+    sys.path.insert(0, extra_path)
+
     # Always re-exec so a previously failed/cached module gets replaced
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
