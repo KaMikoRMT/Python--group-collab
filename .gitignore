@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.db
+*.ipynb
+.DS_Store
+.venv/
+venv/
+.env
+.streamlit/secrets.toml
+assignment_heatmap.html
