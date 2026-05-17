@@ -16,14 +16,18 @@ base = os.path.dirname(os.path.abspath(__file__))
 
 
 def load_module(name, path, extra_path):
-    if name not in sys.modules:
-        if extra_path not in sys.path:
-            sys.path.insert(0, extra_path)
-        spec = importlib.util.spec_from_file_location(name, path)
-        mod = importlib.util.module_from_spec(spec)
-        sys.modules[name] = mod
+    if extra_path not in sys.path:
+        sys.path.insert(0, extra_path)
+    # Always re-exec so a previously failed/cached module gets replaced
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    try:
         spec.loader.exec_module(mod)
-    return sys.modules[name]
+    except Exception:
+        sys.modules.pop(name, None)
+        raise
+    return mod
 
 
 with st.sidebar:
