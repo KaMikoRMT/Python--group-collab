@@ -9,17 +9,21 @@ st.set_page_config(
     layout="wide",
 )
 
+# Silently ignore any subsequent set_page_config calls from page modules
+st.set_page_config = lambda *a, **k: None
+
 base = os.path.dirname(os.path.abspath(__file__))
 
 
-def load_module(name, path):
-    if name in sys.modules:
-        return sys.modules[name]
-    spec = importlib.util.spec_from_file_location(name, path)
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[name] = mod
-    spec.loader.exec_module(mod)
-    return mod
+def load_module(name, path, extra_path):
+    if name not in sys.modules:
+        if extra_path not in sys.path:
+            sys.path.insert(0, extra_path)
+        spec = importlib.util.spec_from_file_location(name, path)
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[name] = mod
+        spec.loader.exec_module(mod)
+    return sys.modules[name]
 
 
 with st.sidebar:
@@ -32,10 +36,16 @@ with st.sidebar:
     )
 
 if page == "🌱 共識建立":
-    sys.path.insert(0, os.path.join(base, "consensus"))
-    mod = load_module("consensus_app", os.path.join(base, "consensus", "app.py"))
+    mod = load_module(
+        "consensus_app",
+        os.path.join(base, "consensus", "app.py"),
+        os.path.join(base, "consensus"),
+    )
     mod.main()
 else:
-    sys.path.insert(0, os.path.join(base, "division"))
-    mod = load_module("division_app", os.path.join(base, "division", "app.py"))
+    mod = load_module(
+        "division_app",
+        os.path.join(base, "division", "app.py"),
+        os.path.join(base, "division"),
+    )
     mod.main()
