@@ -8,8 +8,6 @@ st.set_page_config(
     page_icon="🤝",
     layout="wide",
 )
-# Prevent page files from calling set_page_config a second time
-st.set_page_config = lambda *a, **k: None
 
 base = os.path.dirname(os.path.abspath(__file__))
 

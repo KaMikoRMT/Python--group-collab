@@ -34,7 +34,6 @@ from utils import (
 )
 
 
-st.set_page_config(page_title="?極撱箄降?遙??蝵桃頂蝯?, layout="wide")
 init_db()
 
 

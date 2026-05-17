@@ -41,12 +41,6 @@ from utils import (
 
 def setup_page():
     """Set page config and simple CSS style."""
-    st.set_page_config(
-        page_title="撠?撠?銝駁??梯?撱箇?蝟餌絞",
-        page_icon="?",
-        layout="wide",
-    )
-
     st.markdown(
         """
         <style>
