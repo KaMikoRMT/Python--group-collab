@@ -4,3 +4,5 @@ plotly
 streamlit-autorefresh
 numpy
 scipy
+pydantic
+google-genai
