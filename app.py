@@ -41,6 +41,22 @@ def load_module(name, path, extra_path=None):
     return mod
 
 
+def sync_legacy_session_state():
+    """把平台層 session state 同步到 consensus / division 期望的 key。
+
+    consensus 與 division 模組都用 `room_code` / `nickname` / `is_host` 三個 key。
+    我們在使用者進入這些模組前先設好，這樣它們就會直接進入房間畫面，
+    不會再要求使用者重新建立／加入房間。
+    """
+    code = st.session_state.platform_room_code
+    user = st.session_state.platform_user_name
+    is_host = rooms_db.is_user_host(code, user)
+
+    st.session_state.room_code = code
+    st.session_state.nickname = user
+    st.session_state.is_host = is_host
+
+
 rooms_db.init_platform_db()
 
 # Init session state for platform room
@@ -54,7 +70,10 @@ if "platform_user_name" not in st.session_state:
 # ==========================================
 if st.session_state.platform_room_code is None:
     st.title("🤝 歡迎來到小組合作輔助系統")
-    st.markdown("建立或加入房間後，即可使用所有功能模組（共識建立、任務分工、時間整合、合作規範制定）。")
+    st.markdown(
+        "建立或加入房間後，即可使用所有功能模組（**共識建立、任務分工、時間整合、合作規範制定**）。"
+        "\n\n💡 一次建房即可解鎖四大模組，無需重複登入。"
+    )
 
     col1, col2 = st.columns(2)
 
@@ -65,7 +84,7 @@ if st.session_state.platform_room_code is None:
             if host_name.strip() == "":
                 st.error("請輸入暱稱！")
             else:
-                new_code = rooms_db.create_platform_room()
+                new_code = rooms_db.create_platform_room(host_name.strip())
                 st.session_state.platform_room_code = new_code
                 st.session_state.platform_user_name = host_name.strip()
                 st.rerun()
@@ -77,7 +96,7 @@ if st.session_state.platform_room_code is None:
         if st.button("加入房間", use_container_width=True):
             if join_name.strip() == "" or room_input.strip() == "":
                 st.error("請完整填寫暱稱與房間代碼！")
-            elif rooms_db.verify_platform_room(room_input):
+            elif rooms_db.join_platform_room(room_input, join_name.strip()):
                 st.session_state.platform_room_code = room_input.upper()
                 st.session_state.platform_user_name = join_name.strip()
                 st.rerun()
@@ -91,8 +110,11 @@ else:
     # 頂部資訊列
     info_col, refresh_col = st.columns([3, 1])
     with info_col:
+        host_indicator = " 👑 Host" if rooms_db.is_user_host(
+            st.session_state.platform_room_code, st.session_state.platform_user_name
+        ) else ""
         st.info(
-            f"👤 用戶：**{st.session_state.platform_user_name}** ｜ "
+            f"👤 用戶：**{st.session_state.platform_user_name}**{host_indicator} ｜ "
             f"🏠 當前房間：**{st.session_state.platform_room_code}**"
         )
     with refresh_col:
@@ -110,11 +132,20 @@ else:
         )
         st.divider()
         if st.button("🚪 離開房間", use_container_width=True):
-            st.session_state.platform_room_code = None
-            st.session_state.platform_user_name = None
+            # 清除平台與子模組的 session state
+            for key in (
+                "platform_room_code",
+                "platform_user_name",
+                "room_code",
+                "nickname",
+                "is_host",
+            ):
+                if key in st.session_state:
+                    del st.session_state[key]
             st.rerun()
 
     if page == "🌱 共識建立":
+        sync_legacy_session_state()
         mod = load_module(
             "consensus_app",
             os.path.join(base, "consensus", "app.py"),
@@ -123,6 +154,7 @@ else:
         mod.main()
 
     elif page == "⚙️ 任務分工":
+        sync_legacy_session_state()
         mod = load_module(
             "division_app",
             os.path.join(base, "division", "app.py"),
